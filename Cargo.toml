@@ -1,0 +1,8 @@
+[package]
+name = "guard"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sysinfo = "0.30.4"
+tokio-tungstenite = "0.21.0"
