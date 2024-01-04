@@ -1,4 +1,5 @@
 use std::{net::TcpListener, thread::spawn};
+use std::time::Duration;
 use tungstenite::{accept_hdr, handshake::server::{Request, Response}, Message};
 use sysinfo::{System};
 
@@ -20,16 +21,29 @@ fn main () {
             let welcome_message = Message::Text("Connected to Guard".to_string());
             websocket.send(welcome_message).unwrap();
 
+            let system_info = SystemInfo {
+                num_cores: sys.cpus().len(),
+            };
+
+            let system_info_json = serde_json::to_string(&system_info).unwrap();
+            let system_info_message = Message::Text(system_info_json);
+
+            websocket.send(system_info_message).unwrap();
+
             loop {
                 sys.refresh_cpu();
 
-                for cpu in sys.cpus() {
-                    let cpu_usage = Message::Text(cpu.cpu_usage().to_string());
-                    websocket.send(cpu_usage).unwrap();
-                }
+                let cpu = sys.cpus().get(0).unwrap();
+                let cpu_usage = Message::Text(((cpu.cpu_usage() * 100.0).round() / 100.0).to_string());
+                websocket.send(cpu_usage).unwrap();
 
-                std::thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+                std::thread::sleep(Duration::from_secs(1));
             }
         });
     }
+}
+
+#[derive(Debug, serde::Serialize)]
+struct SystemInfo {
+    num_cores: usize,
 }
